@@ -1,140 +1,219 @@
 #include "Board.h"
-#include <string>
 
-bool isTp = false, onKey = false;
-char playerOnTp;
+static bool removedGnomes = false;
 
-Board::Board(std::string fileName)
-	    :m_matrix(), m_teleport()
+Board::Board()
+	:m_rows(0), m_cols(0), m_height(0), m_width(0), m_location(sf::Vector2f())
+{}
+
+Board::Board(int width, int height, sf::Vector2f location)
+	: m_height(height), m_width(width), m_location(location), m_rows(0), m_cols(0), m_bg(sf::Sprite())
 {
-	// open the level file
-	std::ifstream m_file;
-	m_file.open(fileName);
+	srand(time(NULL));
 
+	m_bg.setTexture(*Resources::instance().getBackground(0)); // set the background
+
+	m_file.open("levelList.txt", std::ios::in);
 	if (!m_file)
-	{
-		cout << "Error! couldn't open file\n";
 		exit(EXIT_FAILURE);
-	}
 
-	// read into the board from file
-	std::string line;
-	int row = 0, col;
-	while (std::getline(m_file, line))
+	// creat the player halo
+	m_playerHalo.setOutlineColor(sf::Color((10, 20, 255, 100)));
+	m_playerHalo.setOutlineThickness(4);
+	m_playerHalo.setFillColor(sf::Color::Transparent);
+}
+
+// create the tiles and characters vectors.
+void Board::buildTiles(std::vector < std::unique_ptr <MovingObject >>& vect,
+					   std::vector < std::unique_ptr <StaticObject >>& tiles)
+{
+	double tileWidth = m_width / (m_cols+1) , tileHeight = m_height / (m_rows+1);
+	std::vector < sf::Vector2f > teleports;
+	for (int i = 0; i < m_rows; i++)
 	{
-		vector<char> rowToRead;
-		col = 0;
-		for (char& c : line) 
+		for (int j = 0; j < m_cols ; j++)
 		{
-			//read row
-			if (c != '\n') 
-				rowToRead.push_back(c);
-			// save teleport in other vector
-			if (c == 'X')
+			if (m_matrix[i][j] != ' ') // ignore blank tiles
 			{
-				Location loc(row, col);
-				m_teleport.push_back(loc);
+				auto locationVector = sf::Vector2f(m_location.x + j * (tileWidth + 2 ) + 3 , m_location.y + i * (tileHeight +2) +3);
+				createObject(m_matrix[i][j], locationVector, *Resources::instance().getTexture(m_matrix[i][j]), vect, tiles);
+				if(m_matrix[i][j] == 'X')
+					teleports.push_back(locationVector);
 			}
-			col++;
 		}
-		row++;
-		m_matrix.push_back(rowToRead);
+
 	}
-	m_file.close();
+	for (int i = 0; i < teleports.size(); i++)
+		tiles.push_back(std::make_unique<Teleport>(teleports[i], *Resources::instance().getTexture('X')));
 }
 
-void Board::clear() const
+void Board::resizeObjects(std::vector < std::unique_ptr <MovingObject >>& vect,
+						  std::vector < std::unique_ptr <StaticObject >>& tiles)
 {
-	std::system("cls");
-}
-void Board::print() const
-{
-	for (int i = 0; i < m_matrix.size(); ++i)
+	double newWidth = m_width / (m_cols + 1), newHeight = m_height / (m_rows + 1);
+
+	for (auto& moveable : vect)
 	{
-		for (int j = 0; j < m_matrix[i].size(); ++j)
-			cout << m_matrix[i][j];
-		cout << std::endl;
+		if (moveable)
+			moveable->setSpriteScale(newWidth , newHeight );
+		// moveable ojbects are slightly smaller for smoother pass between tiles
+	}
+
+	for (auto& unmoveable : tiles)
+	{
+		unmoveable->setSpriteScale(newWidth , newHeight);
 	}
 }
-void Board::updateBoard(Location oldLoc, Location newLoc, char player, char tile)
+
+void Board::draw(sf::RenderWindow& window,
+				 const std::vector < std::unique_ptr <MovingObject >>& vect,
+				 const std::vector < std::unique_ptr <StaticObject >>& tiles)
 {
-	//save the position of the teleport
-	if (isTp)
+	window.draw(m_bg);
+	window.draw(m_playerHalo);
+	
+	// print the tiles
+	for (int j = 0; j < tiles.size(); j++)
+		if (tiles[j] != nullptr)
+			tiles[j]->draw(window);
+
+	// print the characters
+	for (int i = 0; i < vect.size(); i++)
+		if (vect[i] != nullptr)
+			vect[i]->draw(window);
+
+
+}
+
+// randomly select a gift type to set the tile
+static std::unique_ptr<Gift> randomizeGift(const sf::Vector2f& vect, const sf::Texture& texture)
+{
+	while (1)
 	{
-		m_matrix[oldLoc.row][oldLoc.col] = ' ';
-		isTp = false;
+		switch (rand() % 3)
+		{
+		case 0:
+			return std::make_unique<TimeGift>(vect, texture);
+		case 1:
+			return std::make_unique<BadTimeGift>(vect, texture);
+		case 2:
+			if (!removedGnomes)
+			{
+				removedGnomes = true;
+				return std::make_unique<RemoveGnomeGift>(vect, texture);
+			}
+			break;
+		}
 	}
+}
+
+static std::unique_ptr<MovingObject> createMovableObject(char c, const sf::Vector2f& vect, const sf::Texture& texture)
+{
+	switch (c)
+	{
+	case 'K': return std::make_unique<King>(vect, texture);
+	case 'M': return std::make_unique<Mage>(vect, texture);
+	case 'W': return std::make_unique<Warrior>(vect, texture);
+	case 'T': return std::make_unique<Thief>(vect, texture);
+	case '^': return std::make_unique<Gnome>(vect, texture);
+	}
+	return nullptr;
+}
+
+static std::unique_ptr<StaticObject> createUnmovableObject(char c, const sf::Vector2f& vect, const sf::Texture& texture)
+{
+	switch (c)
+	{
+	case 'F': return std::make_unique<Key>(vect, texture);
+	case '=': return std::make_unique<Wall>(vect, texture);
+	case '@': return std::make_unique<Throne>(vect, texture);
+	case '#': return std::make_unique<Gate>(vect, texture);
+	case '!': return std::make_unique<Ogre>(vect, texture);
+	case '*': return std::make_unique<Fire>(vect, texture);
+	case '%': return randomizeGift(vect,texture);
+	}
+	return nullptr;
+}
+
+void Board::createObject(char c, const sf::Vector2f& vect, const sf::Texture& texture,
+						 std::vector < std::unique_ptr <MovingObject >>& chararcters,
+						 std::vector < std::unique_ptr <StaticObject >>& tiles)
+{
+	std::unique_ptr<MovingObject> movable = createMovableObject(c, vect, texture);
+
+	if (movable)
+	{
+		chararcters.push_back(std::move(movable));
+		return;
+	}
+	
 	else
-		m_matrix[oldLoc.row][oldLoc.col] = tile;
-
-	// flag if stepped on a teleport
-	if (getTile(newLoc.row, newLoc.col) == 'X')
-		isTp = true;
-
-	// update the new player location
-	m_matrix[newLoc.row][newLoc.col] = player;
-	printTeleports();
-}
-
-Location Board::getLocation(char player)
-{
-	for (int i = 0; i < m_matrix.size(); ++i)
 	{
-		for (int j = 0; j < m_matrix[i].size(); ++j)
-			if (m_matrix[i][j] == player)
-				return Location(i, j);
+		std::unique_ptr<StaticObject> unmovable = createUnmovableObject(c, vect, texture);
+		if (unmovable)
+		{
+			tiles.push_back(std::move(unmovable));
+			return;
+		}
 	}
-	return Location(0, 0);
 }
 
-int Board::getRowSize() const
-{
-	return m_matrix.size();
-}
-int Board::getColSize() const
-{
-	return m_matrix[0].size();
-}
 
-void Board::printStats(char currPlayer, int steps, bool key) const
+bool Board::loadNextLevel(std::vector < std::unique_ptr <MovingObject >>& vect,
+						  std::vector < std::unique_ptr <StaticObject >>& tiles)
 {
-	Screen::resetLocation();
-	std::string keyPossesion = "No ";
-	if (key)
-		keyPossesion = "Yes";
-	cout << "Current player: " << currPlayer <<std::endl << "Steps made: " << steps << std::endl
-		<< "Thief has key: " << keyPossesion << std::endl << std::endl;
-}
+	m_matrix.clear();
 
-char Board::getTile(int row, int col) const
-{
-	return m_matrix[row][col];
-}
-
-bool Board::cmpLocations(Location one, Location two)
-{
-	return (one.row == two.row && one.col == two.col);
-}
-
-Location Board::locateTeleport(Location teleportLoc)
-{
-	// every teleport built in a vector, the friend of a teleport is hes neighbor in the vecotr,
-	// if the position of a teleport in the array is odd hes friend in  index -1
-	// if the index is even hes friend in index +1
-	for (int i = 0; i < m_teleport.size(); ++i)
+	std::fstream levelFile;
+	std::string line;
+	if (std::getline(m_file, line))
 	{
-		if (cmpLocations(m_teleport[i], teleportLoc))
-			if(i % 2 == 0)
-				return m_teleport[i + 1];
-			else
-				return m_teleport[i - 1];
+		levelFile.open(line, std::ios::in);
+		if (levelFile)
+		{
+			while (std::getline(levelFile, line))
+			{
+				std::vector<char> row;
+				for (char& c : line)
+					if (c != '\n')
+						row.push_back(c);
+				m_matrix.push_back(row);
+			}
+			m_cols = m_matrix[0].size();
+			m_rows = m_matrix.size();
+			buildTiles(vect, tiles);
+			levelFile.close();
+			resizeObjects(vect, tiles);
+			for (auto& moveable : vect)
+				moveable->animateDirection(Down, sf::Time());
+			removedGnomes = false;
+			return true;
+		}
 	}
-	return Location(0, 0);
+	return false;
 }
 
-void Board::printTeleports()
+
+void Board::RestartLevel(std::vector < std::unique_ptr <MovingObject >>& vect,
+						 std::vector < std::unique_ptr <StaticObject >>& tiles)
 {
-	for (int i = 0; i < m_teleport.size(); ++i)
-		if(m_matrix[m_teleport[i].row][m_teleport[i].col] == ' ')
-			m_matrix[m_teleport[i].row][m_teleport[i].col] = 'X';
+	buildTiles(vect, tiles);
+	resizeObjects(vect, tiles);
+	for (auto& moveable : vect)
+		moveable->animateDirection(Down, sf::Time());
+	removedGnomes = false;
+}
+
+
+void Board::setHalo(const std::unique_ptr < MovingObject >& player)
+{
+	// player Halo size is determined by the player's sprite scale
+	int sizeY, sizeX;
+	sizeX = player->getSprite().getScale().x *100; 
+	sizeY = player->getSprite().getScale().y * 100;
+
+	//sizeY = player->getSprite().getTextureRect().height;
+	//sizeX = player->getSprite().getTextureRect().width;
+	m_playerHalo.setSize(sf::Vector2f(sizeX, sizeY));
+	m_playerHalo.setPosition(player->getLocation()); // update position to the player position
 }

@@ -1,65 +1,73 @@
 #pragma once
 
-#include "Board.h";
-#include <cstdlib>
-#include <conio.h>
-#include <iostream>
-#include "King.h"
-#include "Mage.h"
-#include "Warrior.h"
-#include "Thief.h"
-#include "Location.h"
+#include "Board.h"
+#include <cmath>
+#include <ctime>
+#include "Caption.h"
 
-using std::cout;
-
-enum Keys
-{
-    KB_Escape = 27,
-    SpecialKey = 224,
+// details on a teleport tile
+struct TeleportInfo {
+	TeleportInfo(sf::Vector2f loc)
+	{
+		m_loc = loc; 
+		m_isUsed = false; 
+	}
+	sf::Vector2f m_loc; // the location of the teleport
+	bool m_isUsed; // if a character is standing on the teleport
 };
 
-enum SpecialKeys
-{
-    KB_Up = 72,
-    KB_Down = 80,
-    KB_Left = 75,
-    KB_Right = 77,
-};
-
-class Controller
-{
+class Controller {
 public:
-	Controller(std::string fileName);
-    // run the game
-    void run();
+	// default c-stor
+	Controller();
+	// run the game
+	void run(sf::RenderWindow& window);
 
 private:
-    // check if regular key is pressed (from ASCII table)
-    bool handleRegularKey(int c);
+	
+	void runAnimation(sf::RenderWindow& window);
+	void restartLvl();
+	bool eventsHandler(sf::Event& event , sf::RenderWindow& window, sf::Time& deltaTime);
+	void handleVictory(sf::RenderWindow& window);
 
-    // check if special key is pressed (e.g arrow up key)
-    void handleSpecialKey();
+	// erase objects from matching arrays
+	void eraseGnomes();
+	void eraseObject(StaticObject& staticObj);
 
-    // get location of one of the characters
-    Location getPlayerLocation(char player);
+	std::vector< std::unique_ptr <MovingObject > > m_character;
+	std::vector< std::unique_ptr <StaticObject > > m_tiles;
+	// vector of pointers to all moveable characters.
+	
 
-    // set location of one of the characters
-    char setPlayerLocation(char player, Location loc);
+	void switchCharacter();
 
-    // switch between characters
-    void switchPlayer();
+	// move the character m_character[currChar] using the deltaTime and clock.
+	bool movementManger(int currChar, sf::Time& deltaTime, sf::Clock& clock);
 
-    // calculate the new location of a character based on its move and tile stepped on
-    Location calcNewLocation(char player, Location loc, int rowToAdd, int colToAdd);
-    
-    // check is the tile that the charcter tries to step onto is valid
-    bool isValidTile(char player, char newTile);
+	// check collisions on m_character[charIndex] with all other objects.
+	bool manageCollisions(int charIndex);
 
-    Board m_board;
-    char m_player;
+	// check if the location is out of board bounds
+	bool locationAllowed(const MovingObject& shape);
 
-    King m_king;
-    Mage m_mage;
-    Warrior m_warrior;
-    Thief m_thief;
+	void manageGifts(StaticObject& gift); // handle the gifts the player collected
+
+	bool PauseMenu(sf::RenderWindow& window);
+	sf::Vector2f locateTeleport(const StaticObject& teleport);
+
+	Board m_board;
+	int m_currChar;
+	bool m_won = false;
+	void findGnome();
+
+	std::vector< TeleportInfo > m_teleport;
+
+	void readTeleports(); 
+	void clearLastLevel();
+
+	std::vector< int > m_gnomes;
+	std::vector< sf::Clock > m_clocks;
+	Caption m_caption;
+	int m_numOfGnomes;
 };
+
