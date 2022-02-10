@@ -7,6 +7,7 @@ Caption::Caption() : m_level(0), m_stageTime(0) , m_lives(0)
 	setText(m_livesLeft, 2);
 	m_livesLeft.setString("Lives left: ");
 	m_hearts.loadFromFile("heart.png");
+	setButtons();
 }
 //=======================================================================================
 
@@ -115,25 +116,34 @@ void Caption::printMessege(const sf::String text, sf::RenderWindow& window)
 //=======================================================================================
 int Caption::HandleClick(const sf::Vector2f location)
 {
-	if (Clicked(Home, location)) return Home;
-
-	else if (Clicked(Music, location))
+	static bool music_on= true;
+	for (int i = 0; i < MENU_BUTTONS; i++)
 	{
-		Resources::instance().setVolume();
-		return Music;
+		if (m_pauseButtons[i].handleClick(location))
+		{
+			if (i == Music)
+			{
+				Resources::instance().setVolume();
+				m_pauseButtons[Music].setHover(music_on);
+				music_on = !music_on;
+			}
+			return i;
+		}
 	}
-
-	else if (Clicked(Restart, location)) return Restart;
-
-	return -1; // return any number so if no button is clicked - nothing happens
 }
 
-//=======================================================================================
-// return if the button is clicked
-bool Caption::Clicked(int index, const sf::Vector2f location)
+//==============================================================================================
+void Caption::setButtons()
 {
-	if (Resources::instance().getPauseButtons(index)->getGlobalBounds().contains(location))
-		return true;
+	for (int i = 0; i < MENU_BUTTONS; i++)
+		m_pauseButtons[i] = Button(sf::Vector2f(90, 90), i, sf::Vector2f(660 + i * 100, 390));
+}
 
-	return false;
+//=========================================================================================
+void Caption::drawButtons(sf::RenderWindow& window)
+{
+	for (int i = 0; i < MENU_BUTTONS; i++)
+	{
+		m_pauseButtons[i].draw(window);
+	}
 }

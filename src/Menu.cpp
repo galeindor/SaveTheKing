@@ -4,7 +4,7 @@ Menu::Menu()
 	: m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Save The King")
 {
     for (int i = 0; i < MENU_BUTTONS ; i++) // Create the menu buttons
-        m_buttons[i] = Button(sf::Vector2f(300, 80), m_texts[i], sf::Vector2f(800, 330 + i * 150)); 
+        m_buttons[i] = Button(sf::Vector2f(150, 150), m_texts[i], sf::Vector2f(700, 330 + i * 170)); 
 
     m_gameOn = m_need_help = false;
 
@@ -100,7 +100,7 @@ void Menu::handleButtons(const sf::Vector2f& location)
     {
         if (m_buttons[i].handleClick(location)) 
         {  
-            switch (i)
+            switch (i+3)
             {
             case StartGame:
                 m_gameOn = true; 
@@ -123,13 +123,13 @@ void Menu::handleButtons(const sf::Vector2f& location)
 //=======================================================================================
 void Menu::handleHover(const sf::Vector2f& location)
 {
-    m_buttons[m_lastHover].setColor(); // return to default color
+    m_buttons[m_lastHover].setHover(false); // return to default color
     for (int i = 0; i < MENU_BUTTONS; i++)
     {
         if (m_buttons[i].getGlobalBounds().contains(location))
         {
             // change the color if hovered over the button
-            m_buttons[i].setColor(sf::Color(0, 137, 255)); 
+            m_buttons[i].setHover(true);
 
             m_lastHover = i; // set current button as the last button hovered over
         }

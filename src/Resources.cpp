@@ -11,7 +11,6 @@ Resources::Resources()
 	{
 		m_animation[i] = Animation(m_textures[i],sf::Vector2u(3, 4), 1);
 	}
-	
 }
 
 //=======================================================================================
@@ -51,21 +50,9 @@ void Resources::setPauseScreen()
 	m_pauseText.setCharacterSize(80);
 	m_pauseText.setColor(sf::Color(29, 209, 161, 255));
 	m_pauseText.setPosition(sf::Vector2f(660, 260));
-	SetButtons();
 }
 
 //=======================================================================================
-void Resources::SetButtons()
-{
-	for (int i = 0; i < MENU_BUTTONS ; i++)
-	{
-		m_pauseButtons[i].setTexture(&m_pauseTextures[i]);
-		m_pauseButtons[i].setSize(sf::Vector2f(90, 90));
-		m_pauseButtons[i].setPosition(sf::Vector2f(620 + i * 100, 380));
-	}
-	m_pauseButtons[Music].setOutlineThickness(4);
-	m_pauseButtons[Music].setOutlineColor(sf::Color::Green);
-}
 
 //=======================================================================================
 void Resources::loadTextures()
@@ -74,8 +61,13 @@ void Resources::loadTextures()
 		for (int j = 0; j< DIRECTIONS ; j++)
 			m_textures[i][j].loadFromFile(objectTextures[i][j]);
 
-	for (int i = 0; i < MENU_BUTTONS; i++)
-		m_pauseTextures[i].loadFromFile(buttonTextures[i]);
+	for (int i = 0; i < NUM_OF_BUTTONS; i++)
+	{
+		for (int j = 0; j < 2; j++)
+		{
+			m_buttonTextures[i][j].loadFromFile(buttonTextures[i][j]);
+		}
+	}
 }
 
 //=======================================================================================
@@ -124,13 +116,21 @@ sf::RectangleShape* Resources::getPauseButtons(int index)
 }
 
 //=======================================================================================
+sf::Texture* Resources::getButtonTexture(int index , bool pressed)
+{
+	if(pressed)
+		return &m_buttonTextures[index][1];
+	return &m_buttonTextures[index][0];
+}
+
+//=======================================================================================
 void Resources::loadBackground()
 {
 	auto loadPic = sf::Texture();
 	loadPic.loadFromFile("gamebg.png");
 	m_bg.push_back(loadPic);
 
-	loadPic.loadFromFile("help.png");
+	loadPic.loadFromFile("helpBar.png");
 	m_bg.push_back(loadPic);
 
 	loadPic.loadFromFile("bg.png");
@@ -188,10 +188,6 @@ void Resources::drawPauseScreen(sf::RenderWindow& window)
 {
 	window.draw(m_pauseWindow);
 	window.draw(m_pauseText);
-	for (int i = 0; i < 3; i++)
-	{
-		window.draw(m_pauseButtons[i]);
-	}	
 }
 
 //=======================================================================================

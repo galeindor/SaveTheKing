@@ -423,6 +423,7 @@ bool Controller::PauseMenu(sf::RenderWindow& window)
     while (window.isOpen())
     {
         Resources::instance().drawPauseScreen(window);
+        m_caption.drawButtons(window);
         window.display();
         if (auto event = sf::Event{}; window.waitEvent(event))
         {

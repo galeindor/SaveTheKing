@@ -8,6 +8,7 @@ constexpr auto STAGE_TIME = 150;
 constexpr auto BAR_SIZE = 100;
 constexpr auto BOARD_SIZE = 700;
 constexpr auto MENU_BUTTONS = 3;
+constexpr auto NUM_OF_BUTTONS = 6;
 constexpr auto NUM_OF_PICS = 14;
 constexpr auto DIRECTIONS = 4;
 constexpr auto NUM_OF_SOUNDS = 8;
@@ -15,7 +16,7 @@ constexpr auto PLAYABLE = 4;
 
 enum MenuButtons
 {
-	StartGame, Help, Exit
+	StartGame=3 , Help=4 , Exit=5
 };
 
 enum PauseButtons
@@ -45,7 +46,11 @@ enum LoadSoundBuffers
 	start_sound , victory_sound , fire_sound , ogre_sound , gate_sound , teleport_sound , gnome_sound , countdown_sound
 };
 
-const std::string buttonTextures[MENU_BUTTONS] = { "home-button.png" , "restart-button.png" , "music-button.png" };
+const std::string buttonTextures[NUM_OF_BUTTONS][2] = { {"home-button.png"} , {"restart-button.png"} ,
+														{"music-button.png","music-buttonP.png"} ,
+														{"start.png","startP.png"} ,
+														{ "help.png","helpP.png"} ,
+														{"exit.png", "exitP.png"} };
 
 const std::string soundBuffers[NUM_OF_SOUNDS] = { "startGame.wav" , "victory.wav" , "fire.wav" , "ogre.wav" , "gate.wav" ,
 												  "teleport.wav" , "gnome.wav" ,"countdown.wav" };

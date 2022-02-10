@@ -23,7 +23,7 @@ private:
 	void eventsHandler();
 
 	sf::RenderWindow m_window; 
-	sf::String m_texts[MENU_BUTTONS] = { "Start game", "Help", "Exit" };
+	MenuButtons m_texts[MENU_BUTTONS] = { StartGame  , Help , Exit };
 
 	Button m_buttons[MENU_BUTTONS]; // menu buttons
 
