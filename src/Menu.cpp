@@ -4,8 +4,9 @@ Menu::Menu()
 	: m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Save The King")
 {
     for (int i = 0; i < MENU_BUTTONS ; i++) // Create the menu buttons
-        m_buttons[i] = Button(sf::Vector2f(150, 150), m_texts[i], sf::Vector2f(700, 330 + i * 170)); 
+        m_buttons[i] = Button(sf::Vector2f(300, 150), m_texts[i], sf::Vector2f(800, 330 + i * 190));
 
+    m_buttons[2] = Button(sf::Vector2f(100, 100), m_texts[2], sf::Vector2f(1500, 720));
     m_gameOn = m_need_help = false;
 
     //initiate help bar

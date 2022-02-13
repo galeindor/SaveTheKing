@@ -65,8 +65,10 @@ void Controller::run(sf::RenderWindow& window)
         }
 
         for (int i = 0; i < m_gnomes.size(); i++) // move gnomes
+        {
             if(!movementManger(m_gnomes[i], deltaTimeGnomes, m_clocks[i]))
                 m_character[m_gnomes[i]]->setDirection(sf::Keyboard::Up);
+        }
         // gnomes change direction only when they collide with an object , the next direction is random.
         
         if (m_won)
@@ -85,48 +87,6 @@ void Controller::run(sf::RenderWindow& window)
             while (m_character[m_currChar] == nullptr || typeid(*m_character[m_currChar]) == typeid(Gnome))
                 switchCharacter();
         }
-    }
-}
-
-//=======================================================================================
-
-void Controller::runAnimation(sf::RenderWindow& window)
-{
-    sf::Clock clock;
-    sf::Time deltaTime;
-    sf::Sprite player;
-    int dir = 0;
-    while (window.isOpen())
-    {
-        deltaTime = clock.restart();
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            switch (event.type)
-            {
-            case sf::Event::Closed:
-                window.close();
-                break;
-            }
-        }
-        if (event.type == sf::Event::KeyPressed)
-
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-                dir = Right;
-
-            else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-                dir = Down;
-
-            else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-                dir = Left;
-
-            else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-                dir = Up;
-
-        Resources::instance().setAnimation(m_currChar,deltaTime, player , dir);
-        window.clear(sf::Color(150, 150, 150));
-        window.draw(player);
-        window.display();
     }
 }
 
@@ -209,7 +169,7 @@ bool Controller::movementManger(int currChar, sf::Time& deltaTime, sf::Clock& cl
     deltaTime = clock.restart();
     m_character[currChar]->movePlayer(deltaTime);
 
-    if (!manageCollisions(currChar)) // check if any collision has accured with this character and handle it
+    if (!manageCollisions(currChar,false)) // check if any collision has accured with this character and handle it
     {
         m_character[currChar]->setLocation(m_character[currChar]->getLastLoc()); // return to last 'safe' tile
         return false;
@@ -239,7 +199,7 @@ void Controller::findGnome()
 }
 
 //=======================================================================================
-bool Controller::manageCollisions(int currChar)
+bool Controller::manageCollisions(int currChar , bool teleported)
 {
     if (!locationAllowed(*m_character[currChar]))
         return false;
@@ -275,23 +235,22 @@ bool Controller::manageCollisions(int currChar)
                     break;
 
                 case CollisionStatus::Teleport:
+                    if (!teleported)
+                    {
+                        m_character[currChar]->setLastLoc();
+                        m_character[currChar]->setLocation(locateTeleport(*tile));
+                        if (!manageCollisions(currChar, true))
+                           return false;
+                        m_character[currChar]->teleported();
+                    }
                     if (!m_character[currChar]->isTp())
                     {
-                        auto newLoc = locateTeleport(*tile);
-                        if (newLoc == sf::Vector2f(0, 0))
-                            return true;
-                        Resources::instance().playSound(teleport_sound);
-                        m_character[currChar]->teleported();
-                        m_character[currChar]->setLocation(newLoc);
-                        m_character[currChar]->setLastLoc();
+                       m_character[currChar]->teleported();
+                       return true;                      
                     }
-                    return true;
-                case CollisionStatus::Block:
-                {
-                    auto temp = locateTeleport(*tile);
-                    m_character[currChar]->teleported();
-                    return true;
-                }
+                    return false;
+                    break;
+
                 case CollisionStatus::Gift:
                     manageGifts(*tile);
                     eraseObject(*tile);
@@ -302,8 +261,8 @@ bool Controller::manageCollisions(int currChar)
     if (m_character[currChar]->isTp())
     {
         m_character[currChar]->teleported();
-        for (int i = 0; i < m_teleport.size(); i++)
-            m_teleport[i].m_isUsed = false;
+    //    for (int i = 0; i < m_teleportort.size(); i++)
+    //        m_teleportort[i].m_isUsed = false;
     }
     return true;
 }
@@ -327,28 +286,30 @@ sf::Vector2f Controller::locateTeleport(const StaticObject& teleport)
     // if the index is even hes friend in index +1
     for (int i = 0; i < m_teleport.size(); ++i)
     {
-        if (teleport.getLocation() == m_teleport[i].m_loc)
+        if (teleport.getLocation() == m_teleport[i])
         {
-            if (m_teleport[i].m_isUsed)
-                return sf::Vector2f(0,0);
+            //if (m_teleportort[i].m_isUsed)
+            //    break;
 
             // teleports are stored in a vector and linked by a following (odd,even) index couples ,
-            //  for exmaple : m_teleport[0] and m_teleport[1] are linked.
+            //  for exmaple : m_teleportort[0] and m_teleportort[1] are linked.
             if (i % 2 == 0) 
             {
-                m_teleport[i].m_isUsed = true;
-                m_teleport[++i].m_isUsed = true;
-                return m_teleport[i].m_loc;
+                //m_teleportort[i].m_isUsed = true;
+                //m_teleportort[++i].m_isUsed = true;
+                //return m_teleportort[i].m_loc;
+                return m_teleport[++i];
             }  
             else
             {
-                m_teleport[i].m_isUsed = true;
-                m_teleport[--i].m_isUsed = true;
-                return m_teleport[i].m_loc;
+                //m_teleportort[i].m_isUsed = true;
+                //m_teleportort[--i].m_isUsed = true;
+                //return m_teleportort[i].m_loc;
+                return m_teleport[--i];
             }
         }
     }
-    return sf::Vector2f();
+    return sf::Vector2f(0,0);
 }
 
 //=======================================================================================
@@ -357,7 +318,7 @@ void Controller::readTeleports()
     for (auto& tile : m_tiles)
     {
         if (typeid(*tile) == typeid(Teleport))
-            m_teleport.push_back(TeleportInfo(tile->getLocation()));
+            m_teleport.push_back(tile->getLocation());
     }
 }
 

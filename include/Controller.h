@@ -5,17 +5,6 @@
 #include <ctime>
 #include "Caption.h"
 
-// details on a teleport tile
-struct TeleportInfo {
-	TeleportInfo(sf::Vector2f loc)
-	{
-		m_loc = loc; 
-		m_isUsed = false; 
-	}
-	sf::Vector2f m_loc; // the location of the teleport
-	bool m_isUsed; // if a character is standing on the teleport
-};
-
 class Controller {
 public:
 	// default c-stor
@@ -45,7 +34,7 @@ private:
 	bool movementManger(int currChar, sf::Time& deltaTime, sf::Clock& clock);
 
 	// check collisions on m_character[charIndex] with all other objects.
-	bool manageCollisions(int charIndex);
+	bool manageCollisions(int charIndex, bool teleported);
 
 	// check if the location is out of board bounds
 	bool locationAllowed(const MovingObject& shape);
@@ -60,7 +49,7 @@ private:
 	bool m_won = false;
 	void findGnome();
 
-	std::vector< TeleportInfo > m_teleport;
+	std::vector <sf::Vector2f> m_teleport;
 
 	void readTeleports(); 
 	void clearLastLevel();

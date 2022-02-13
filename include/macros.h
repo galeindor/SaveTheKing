@@ -16,7 +16,7 @@ constexpr auto PLAYABLE = 4;
 
 enum MenuButtons
 {
-	StartGame=3 , Help=4 , Exit=5
+	StartGame=3 , Help=5 , Exit=4
 };
 
 enum PauseButtons
@@ -49,8 +49,8 @@ enum LoadSoundBuffers
 const std::string buttonTextures[NUM_OF_BUTTONS][2] = { {"home-button.png"} , {"restart-button.png"} ,
 														{"music-button.png","music-buttonP.png"} ,
 														{"start.png","startP.png"} ,
-														{ "help.png","helpP.png"} ,
-														{"exit.png", "exitP.png"} };
+														{"exit.png", "exitP.png"} ,
+														{ "help.png","helpP.png"} };
 
 const std::string soundBuffers[NUM_OF_SOUNDS] = { "startGame.wav" , "victory.wav" , "fire.wav" , "ogre.wav" , "gate.wav" ,
 												  "teleport.wav" , "gnome.wav" ,"countdown.wav" };
